@@ -92,7 +92,6 @@ void draw() {
   
   img.resize(500,500);
   pg_base.beginDraw();
-  pg_base.background(0);
   if( type == 0)
     pg_base.image(img, 0, 0);
   else
@@ -103,7 +102,6 @@ void draw() {
   
   
   pg_modified.beginDraw();
-  pg_modified.background(0);
   pg_modified.loadPixels();
   copyPixels(pg_base, pg_modified);
   if(grayCheck.isSelected()){
@@ -114,7 +112,6 @@ void draw() {
   }else if(segmentationCheck.isSelected()){
     pg_modified.pixels = seg(otsu, pg_base.pixels);
   }
-  pg_modified.updatePixels();  
   pg_modified.endDraw();
   image(pg_modified, 500,0);
   
@@ -140,10 +137,8 @@ void draw() {
   pg_modified.endDraw();
   image(pg_modified, 500,0);
   
-  if(type == 1){
-    textSize(25);
-    text("FPS: " + int(frameRate), 1050, 250);  
-  }
+  textSize(25);
+  text("FPS: " + int(frameRate), 1050, 250); 
 
 }
 
