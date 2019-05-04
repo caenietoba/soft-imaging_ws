@@ -1,4 +1,3 @@
-import g4p_controls.*;
 import processing.video.*;
 
 PImage img;
@@ -7,11 +6,11 @@ Movie video;
 PGraphics pg_base;
 PGraphics pg_modified;
 
+PFont mifont;
+
 int w = 120;
 int size = 500;
 int matrixsize = 3;
-
-int type = 0;
 
 // matrices to produce different effects. This is a high-pass 
 // filter; it accentuates the edges. 
@@ -39,12 +38,25 @@ int[] hist_alpha = new int[256];
 
 int otsu; //Umbral dado por el algoritmo de otsu
 
-GButton imgButton, videoButton, grayButton, convolutionButton;
-GCheckbox brigthHistogramCheck, redHistogramCheck, greenHistogramCheck, blueHistogramCheck;
-GCheckbox hueHistogramCheck, alphaHistogramCheck, saturHistogramCheck;
-GToggleGroup toggleGroup;
-GOption grayCheck, convolutionCheck, segmentationCheck;
+//Botones
+//------------------------------//
+boolean img_button = true;
+boolean video_button = false;
+boolean gray_scale_btn = false;
+boolean convolution_btn = false;
+boolean segmentation_btn = false;
+boolean brigth_histo = false;
+boolean red_histo = false;
+boolean green_histo = false;
+boolean blue_histo = false;
+boolean hue_histo = false;
+boolean alpha_histo = false;
+boolean satur_histo = false;
 
+//En caso de que este activo la opción de video las opciones de los histogramas
+//se desactivan
+boolean active_histo_btns = true;  
+//------------------------------//
 
 void setup() {
   size(1200, 700);
@@ -62,56 +74,93 @@ void setup() {
   pg_base = createGraphics(500, 500);
   pg_modified = createGraphics(500, 500);
   
-  toggleGroup = new GToggleGroup();
-  grayCheck = new GOption(this, 300, 575, 100, 30, "Image");
-  convolutionCheck = new GOption(this, 300, 600, 100, 30, "Image");
-  segmentationCheck = new GOption(this, 300, 625, 100, 30, "Image");
-  
-  toggleGroup.addControl(grayCheck);
-  toggleGroup.addControl(convolutionCheck);
-  toggleGroup.addControl(segmentationCheck);
-  
-  imgButton = new GButton(this, 100, 575, 100, 30, "Image");
-  imgButton.addEventHandler(this, "handleImageButton");
-  videoButton = new GButton(this, 100, 620, 100, 30, "Video");
-  videoButton.addEventHandler(this, "handleVideoButton");
-  
-  brigthHistogramCheck = new GCheckbox(this, 500, 525, 125, 25, "Brigthnes");
-  redHistogramCheck = new GCheckbox(this, 500, 550, 125, 25, "Red");
-  greenHistogramCheck = new GCheckbox(this, 500, 575, 125, 25, "Green");
-  blueHistogramCheck = new GCheckbox(this, 500, 600, 125, 25, "Blue");
-  saturHistogramCheck = new GCheckbox(this, 500, 625, 125, 25, "Saturation");
-  hueHistogramCheck = new GCheckbox(this, 500, 650, 125, 25, "Hue");
-  alphaHistogramCheck = new GCheckbox(this, 500, 675, 125, 25, "Alpha");
-  
+  mifont = loadFont("Monospaced.bolditalic-38.vlw");
+  textFont(mifont, 11);
+}
+
+void setStroke( boolean btn ){
+  if( btn ){
+    stroke(255);
+    strokeWeight(2);
+  }
+  else{
+    stroke(0);
+    strokeWeight(0);
+  }
 }
 
 void draw() {
   
   background(0);
   
+  //------------------------------//
+  //Botones 
+  fill(#CD5C5C);
+  setStroke( img_button );
+  rect(100, 575, 100, 30, 7);
+  setStroke( video_button );
+  rect(100, 620, 100, 30, 7);
+  setStroke( gray_scale_btn );
+  rect(300, 575, 200, 20, 7);
+  setStroke( convolution_btn );
+  rect(300, 600, 200, 20, 7);
+  setStroke( segmentation_btn );
+  rect(300, 625, 200, 20, 7);
+  if( active_histo_btns ){
+    setStroke( brigth_histo );
+    rect(600, 525, 170, 22, 7);
+    setStroke( red_histo );
+    rect(600, 550, 170, 22, 7);
+    setStroke( green_histo );
+    rect(600, 575, 170, 22, 7);
+    setStroke( blue_histo );
+    rect(600, 600, 170, 22, 7);
+    setStroke( hue_histo );
+    rect(600, 625, 170, 22, 7);
+    setStroke( alpha_histo );
+    rect(600, 650, 170, 22, 7);
+    setStroke( satur_histo );
+    rect(600, 675, 170, 22, 7);
+  }
+  
+  fill(255);
+  text("Image", 105, 602);
+  text("Video", 105, 647);
+  text("Gray scale", 305, 592);
+  text("Convolution", 305, 617);
+  text("Segmentation", 305, 642);
+  if( active_histo_btns ){
+    text("Brigthnes", 605, 547);
+    text("Red", 605, 572);
+    text("Green", 605, 597);
+    text("Blue", 605, 622);
+    text("Saturation", 605, 647);
+    text("Hue", 605, 672);
+    text("Alpha", 605, 697);
+  }
+  //------------------------------//
+  
   img.resize(500,500);
   pg_base.beginDraw();
-  if( type == 0)
+  if( img_button )
     pg_base.image(img, 0, 0);
   else
     pg_base.image(video, 0, 0);
   pg_base.endDraw();
-  pg_base.loadPixels();
   image(pg_base, 0, 0);
-  
   
   pg_modified.beginDraw();
   pg_modified.loadPixels();
   copyPixels(pg_base, pg_modified);
-  if(grayCheck.isSelected()){
+  if(gray_scale_btn){
     pg_modified.pixels = gray(pg_modified.pixels);
-  }else if(convolutionCheck.isSelected()){
+  }else if(convolution_btn){
     pg_modified.pixels = convolution(pg_modified.pixels, matrix, matrixsize);
     areaConvolution();
-  }else if(segmentationCheck.isSelected()){
+  }else if(segmentation_btn){
     pg_modified.pixels = seg(otsu, pg_base.pixels);
   }
+  pg_modified.updatePixels();  
   pg_modified.endDraw();
   image(pg_modified, 500,0);
   
@@ -119,26 +168,33 @@ void draw() {
   
   pg_modified.beginDraw();
   pg_modified.stroke(255);
-  if(brigthHistogramCheck.isSelected()){
+  if(brigth_histo && active_histo_btns){
     drawHistogram(hist, pg_modified, color(#FFFFFF));
-  }else if(redHistogramCheck.isSelected()){
+  }
+  if(red_histo && active_histo_btns){
     drawHistogram(hist_red, pg_modified, color(247,82,107));
-  }else if(greenHistogramCheck.isSelected()){
+  }
+  if(green_histo && active_histo_btns){
     drawHistogram(hist_green, pg_modified, color(38,209,65));
-  } else if(blueHistogramCheck.isSelected()){
+  }
+  if(blue_histo && active_histo_btns){
     drawHistogram(hist_blue, pg_modified, color(38,82,209));
-  } else if(saturHistogramCheck.isSelected()){
+  }
+  if(satur_histo && active_histo_btns){
     drawHistogram(hist_sat, pg_modified, color(#FFFFFF));
-  } else if(hueHistogramCheck.isSelected()){
+  }
+  if(hue_histo && active_histo_btns){
     drawHistogram(hist_hue, pg_modified, color(#FFFFFF));
-  } else if(alphaHistogramCheck.isSelected()){
+  }
+  if(alpha_histo && active_histo_btns){
     drawHistogram(hist_alpha, pg_modified, color(#FFFFFF));
   }
   pg_modified.endDraw();
   image(pg_modified, 500,0);
   
+  fill(255);
   textSize(25);
-  text("FPS: " + int(frameRate), 1050, 250); 
+  text("FPS: " + int(frameRate), 1050, 250);  
 
 }
 
@@ -216,7 +272,6 @@ color[] gray( color[] pixels_array ){
     float g = green(p); // Modificamos el valor del verde
     float b = blue(p); // Modificamos el valor del azul
     float luma240 = 0.212*r + 0.701*g + 0.087*b; //Método del Luma 240
-    float promedyGray = (r + g + b) / 3.0; //Método del promedio
     pixels_array[i] = color(luma240); 
   }
   return pixels_array;
@@ -366,28 +421,52 @@ void movieEvent(Movie m) {
   m.read();
 }
 
-public void handleImageButton(GButton button, GEvent event){
-  
-  type = 0;
-  
-  brigthHistogramCheck.setVisible(true);
-  redHistogramCheck.setVisible(true);
-  greenHistogramCheck.setVisible(true);
-  blueHistogramCheck.setVisible(true);
-  hueHistogramCheck.setVisible(true);
-  alphaHistogramCheck.setVisible(true);
-  saturHistogramCheck.setVisible(true);
-}
-
-public void handleVideoButton(GButton button, GEvent event){
-  
-  type = 1;
-  
-  brigthHistogramCheck.setVisible(false);
-  redHistogramCheck.setVisible(false);
-  greenHistogramCheck.setVisible(false);
-  blueHistogramCheck.setVisible(false);
-  hueHistogramCheck.setVisible(false);
-  alphaHistogramCheck.setVisible(false);
-  saturHistogramCheck.setVisible(false);
+//Action handler de los botones
+void mousePressed(){
+  if( mouseX > 100 && mouseX < 200 && mouseY > 575 && mouseY < 605  ){
+    img_button = true;
+    video_button = false;
+    active_histo_btns = true;
+  }
+  if( mouseX > 100 && mouseX < 200 && mouseY > 620 && mouseY < 650  ){
+    img_button = false;
+    video_button = true;
+    active_histo_btns = false;
+  }
+  if( mouseX > 300 && mouseX < 500 && mouseY > 575 && mouseY < 595  ){
+    gray_scale_btn = true;
+    convolution_btn = false;
+    segmentation_btn = false;
+  }
+  if( mouseX > 300 && mouseX < 500 && mouseY > 600 && mouseY < 620  ){
+    gray_scale_btn = false;
+    convolution_btn = true;
+    segmentation_btn = false;
+  }
+  if( mouseX > 300 && mouseX < 500 && mouseY > 625 && mouseY < 645  ){
+    gray_scale_btn = false;
+    convolution_btn = false;
+    segmentation_btn = true;
+  }
+  if( mouseX > 600 && mouseX < 770 && mouseY > 525 && mouseY < 545  ){
+    brigth_histo = !brigth_histo;
+  }
+  if( mouseX > 600 && mouseX < 770 && mouseY > 550 && mouseY < 570  ){
+    red_histo = !red_histo;    
+  }
+  if( mouseX > 600 && mouseX < 770 && mouseY > 575 && mouseY < 595  ){
+    green_histo = !green_histo;   
+  }
+  if( mouseX > 600 && mouseX < 770 && mouseY > 600 && mouseY < 620  ){
+    blue_histo = !blue_histo;   
+  }
+  if( mouseX > 600 && mouseX < 770 && mouseY > 625 && mouseY < 645  ){
+    hue_histo = !hue_histo;   
+  }
+  if( mouseX > 600 && mouseX < 770 && mouseY > 650 && mouseY < 670  ){
+    alpha_histo = !alpha_histo;   
+  }
+  if( mouseX > 600 && mouseX < 770 && mouseY > 675 && mouseY < 695  ){
+    satur_histo = !satur_histo;   
+  }
 }
